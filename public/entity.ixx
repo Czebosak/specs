@@ -1,11 +1,24 @@
 module;
 
 #include <cstddef>
+#include <cstdint>
 
 export module specs.entity;
 
-export using EntityID = size_t;
+namespace specs {
+    export using EntityID = size_t;
 
-export class Entity {
-    unsigned int generation;
-};
+    export struct EntityHandle {
+        EntityID id;
+        uint32_t generation;
+
+        EntityHandle& add_component();
+
+        void destroy();
+    };
+
+    export class Entity {
+    public:
+        uint32_t generation;
+    };
+}
