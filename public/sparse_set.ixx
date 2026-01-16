@@ -4,17 +4,89 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include <span>
 
 export module specs.sparse_set;
 
 import specs.entity;
 
 namespace specs::utils {
-    export class SparseSet {
+    #ifndef SPECS_PAGE_SIZE
+    #define SPECS_PAGE_SIZE 1024 // default
+    #endif
+
+    export template <typename T = uint8_t>
+    class SparseSet {
     private:
-        #ifndef SPECS_PAGE_SIZE
-        #define SPECS_PAGE_SIZE 1024 // default
-        #endif
+        static constexpr size_t PAGE_SIZE = SPECS_PAGE_SIZE;
+        static constexpr size_t NULL_INDEX = -1;
+
+        std::vector<T> dense;
+        std::vector<EntityID> dense_to_id;
+        std::vector<std::vector<size_t>> sparse;
+
+        //void destructor();
+
+        inline size_t get_page_index(EntityID id) {
+            return id / PAGE_SIZE;
+        }
+
+        inline size_t get_index_in_page(EntityID id) {
+            return id % PAGE_SIZE;
+        }
+    public:
+        template <typename... Args>
+        T& emplace(EntityID id, Args&&... args) {
+            size_t dense_i = dense.size();
+            T& ref = dense.emplace_back(std::forward<Args>(args)...);
+            dense_to_id.emplace_back(id);
+
+            size_t page_i = get_page_index(id);
+            size_t i = get_index_in_page(id);
+
+            if (page_i >= sparse.size()) {
+                sparse.resize(page_i + 1);
+            }
+
+            if (i >= sparse[page_i].capacity()) {
+                sparse[page_i].resize(i + 1, NULL_INDEX);
+            }
+
+            sparse[page_i][i] = dense_i;
+
+            return ref;
+        }
+
+        T& get(EntityID id) {
+            return dense[sparse[get_page_index(id)][get_index_in_page(id)]];
+        }
+
+        void erase(EntityID id) {
+            size_t page_i = get_page_index(id);
+            size_t i = get_index_in_page(id);
+            size_t dense_i = sparse[page_i][i];
+
+            EntityID last_id = dense_to_id.back();
+            std::swap(dense[dense_i], dense.back());
+
+            std::swap(dense_to_id[dense_i], dense_to_id.back());
+
+            sparse[page_i][i] = NULL_INDEX;
+            sparse[get_page_index(last_id)][get_index_in_page(last_id)] = dense_i;
+            
+            dense.pop_back();
+            dense_to_id.pop_back();
+        }
+
+        std::span<T> get_dense_data() {
+            return dense;
+        }
+    };
+
+    // Type erased
+    export template <>
+    class SparseSet<uint8_t> {
+    private:
         static constexpr size_t PAGE_SIZE = SPECS_PAGE_SIZE;
         static constexpr size_t NULL_INDEX = -1;
 
@@ -89,6 +161,10 @@ namespace specs::utils {
             
             dense.resize(dense.size() - sizeof(T));
             dense_to_id.pop_back();
+        }
+
+        std::span<uint8_t> get_dense_data() {
+            return dense;
         }
     };
 }
