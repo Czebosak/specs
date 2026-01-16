@@ -1,16 +1,40 @@
-import specs.world;
-import specs.entity;
+import specs.schedule;
 
-#include <iostream>
+#include <print>
+
+struct Position {
+    float x, y, z;
+};
+
+struct Velocity {
+    float x, y, z;
+};
+
+struct Player {
+    float x, y, z;
+};
 
 int main() {
-    specs::World world;
+    /* specs::World world;
     specs::EntityHandle e = world.create_entity();
 
     std::cout << e.id << e.generation << std::endl;
 
     e = specs::EntityHandle { world.create_entity() };
 
-    std::cout << e.id << e.generation << std::endl;
+    std::cout << e.id << e.generation << std::endl; */
+
+    specs::Schedule schedule;
+
+    //schedule.register_system([](Position& pos, const Velocity& veltime) {});
+
+    schedule.register_system([]() {
+        std::println("skibdi tetst");
+    });
+
+    schedule.run();
+
+    std::println("WE ARE HEERE");
+
     return -1;
 }

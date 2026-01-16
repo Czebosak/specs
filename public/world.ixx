@@ -5,17 +5,14 @@ module;
 #include <cstdint>
 #include <vector>
 #include <string_view>
-#include <type_traits>
 
 export module specs.world;
 
 import specs.entity;
-import :sparse_set;
+import specs.component;
+import specs.schedule;
 
 namespace specs {
-    template <typename T>
-    concept ComponentType = std::is_class_v<T> || std::is_enum_v<T>;
-
     export enum class ComponentStorageType {
         SparseSet,
     };
@@ -31,8 +28,7 @@ namespace specs {
 
         std::vector<RecycledEntityID> recycled_ids;
         size_t next_id;
-
-        utils::SparseSet s;
+        Schedule schedule;
     public:
         explicit World();
 
@@ -42,7 +38,6 @@ namespace specs {
         // be registered for you
         template <ComponentType T>
         void register_component(ComponentStorageType storage_type = ComponentStorageType::SparseSet) {
-            
         }
 
         // Registers a new component with an explicit name

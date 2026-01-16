@@ -5,12 +5,12 @@ module;
 #include <cstdint>
 #include <cassert>
 
-export module specs.world:sparse_set;
+export module specs.sparse_set;
 
 import specs.entity;
 
 namespace specs::utils {
-    class SparseSet {
+    export class SparseSet {
     private:
         #ifndef SPECS_PAGE_SIZE
         #define SPECS_PAGE_SIZE 1024 // default

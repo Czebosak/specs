@@ -2,7 +2,7 @@ module;
 
 #include <deque>
 
-export module specs.commnds;
+export module specs.commands;
 
 import specs.world;
 import specs.entity;
