@@ -76,6 +76,8 @@ namespace specs {
         std::vector<SystemID> ordered;
         std::vector<ScheduleFrame> frames;
 
+        std::vector<System>
+
         template <SystemFunc Func, typename Tuple, std::size_t... I>
         SystemID register_system_impl(Func&& func, std::index_sequence<I...>) {
             return register_system_expl<Func, std::tuple_element_t<I, Tuple>...>(
@@ -121,9 +123,7 @@ namespace specs {
                 chosen_frame->used_components.emplace(std::move(component));
             }
 
-            std::println("{}, {}", chosen_frame - frames.data(), frames.size());
             for (int i = (chosen_frame - frames.data()); i < frames.size(); i++) {
-                std::println("{}", i);
                 frames[i].end_index++;
             }
         }
@@ -169,7 +169,6 @@ namespace specs {
         }
         
         void run() {
-            std::println("{}, {}", frames.size(), systems.size());
             int next_index = 0;
             for (auto& frame : frames) {
                 for (int i = next_index; i < frame.end_index; i++) {

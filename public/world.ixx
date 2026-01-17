@@ -10,6 +10,7 @@ export module specs.world;
 
 import specs.entity;
 import specs.component;
+import specs.component_storage;
 import specs.schedule;
 
 namespace specs {
@@ -28,6 +29,8 @@ namespace specs {
 
         std::vector<RecycledEntityID> recycled_ids;
         size_t next_id;
+
+        ComponentStorage component_storage;
         Schedule schedule;
     public:
         explicit World();
@@ -37,7 +40,8 @@ namespace specs {
         // to an entity that hasn't been registered it will
         // be registered for you
         template <ComponentType T>
-        void register_component(ComponentStorageType storage_type = ComponentStorageType::SparseSet) {
+        ComponentNumericID register_component(ComponentStorageType storage_type = ComponentStorageType::SparseSet) {
+            return component_storage.register_component<T>();
         }
 
         // Registers a new component with an explicit name

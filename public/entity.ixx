@@ -12,13 +12,8 @@ namespace specs {
         EntityID id;
         uint32_t generation;
 
-        EntityHandle& add_component();
+        //EntityHandle& add_component();
 
-        void destroy();
-    };
-
-    export class Entity {
-    public:
-        uint32_t generation;
+        //void destroy();
     };
 }

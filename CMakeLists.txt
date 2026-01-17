@@ -4,7 +4,6 @@ project(Specs)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
-
 add_library(Specs STATIC) 
 
 target_include_directories(Specs PRIVATE "src")

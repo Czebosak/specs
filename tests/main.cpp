@@ -1,4 +1,5 @@
 import specs.schedule;
+import specs.component;
 
 #include <print>
 
