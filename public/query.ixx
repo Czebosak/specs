@@ -27,7 +27,7 @@ namespace specs {
         std::is_lvalue_reference_v<T> &&
         !std::is_const_v<std::remove_reference_t<T>>;
 
-    template <typename... Spans>
+    /* template <typename... Spans>
     class ZipIterator {
         std::tuple<Spans...> spans;
         std::size_t index;
@@ -51,7 +51,7 @@ namespace specs {
         bool operator==(const ZipIterator& other) const {
             return index == other.index;
         }
-    };
+    }; */
 
     export template <QueriedComponentType... QueriedComponents>
     requires (sizeof...(QueriedComponents) > 0)
@@ -64,9 +64,16 @@ namespace specs {
             std::vector<std::string_view> mutable_resources;
         };
 
-        std::tuple<std::span<std::remove_reference_t<QueriedComponents>>...> data;
+        struct Chunk {
+            std::tuple<std::span<std::remove_reference_t<QueriedComponents>>...> data;
+        };
+
+        std::vector<Chunk> chunks;
     public:
-        auto single() {
+        explicit Query() {}
+
+        explicit Query(std::vector<Chunk>&& chunks) : chunks(std::forward(chunks)) {}
+        /* auto single() {
             return std::apply([](auto&... spans) {
                 return std::forward_as_tuple(spans[0]...);
             }, data);
@@ -82,6 +89,6 @@ namespace specs {
         auto end() { return ZipIterator(data, std::get<0>(data).size()); }
 
         auto begin() const { return ZipIterator(data, 0); }
-        auto end() const { return ZipIterator(data, std::get<0>(data).size()); }
+        auto end() const { return ZipIterator(data, std::get<0>(data).size()); } */
     };
 }

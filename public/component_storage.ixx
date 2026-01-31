@@ -11,65 +11,28 @@ module;
 #include <variant>
 #include <cassert>
 
+#include <ankerl/unordered_dense.h>
+#include <boost/container/small_vector.hpp>
+
 export module specs.component_storage;
 
 import specs.sparse_set;
 import specs.entity;
 import specs.component;
 
+import :archetype;
+
 namespace specs {
-    export using ComponentNumericID = size_t;
-
-    export using ResourceNumericID = size_t;
-
-    using RegisteredTypeID = std::variant<ComponentNumericID, ResourceNumericID>;
-
     export class ComponentStorage {
     private:
         std::vector<std::any> resources;
-        std::vector<utils::SparseSet<>> component_data;
-        std::unordered_map<size_t, utils::SparseSet<EntityID>> groups;
-        std::unordered_map<std::string, ComponentNumericID> type_registry;
+        /* std::vector<utils::SparseSet<>> component_data;
+        std::unordered_map<size_t, utils::SparseSet<EntityID>> groups; */
+        /* std::unordered_map<std::string, ComponentNumericID> type_registry; */
+        std::vector<Archetype> archetypes;
+
+        ankerl::unordered_dense::map<ComponentID, boost::container::small_vector<uint32_t, 6>> component_to_archetype;
     public:
-        static size_t get_group_hash(std::span<std::string> components) {
-            std::hash<std::string> hasher;
-            size_t h = 0;
-
-            for (auto& c : components) {
-                c = "s";
-                h ^= hasher(c);
-            }
-
-            return h;
-        }
-
-        std::optional<std::span<EntityID>> get_members_of_group(size_t hash) {
-            auto it = groups.find(hash);
-            if (it != groups.end()) {
-                return std::make_optional(it->second.get_dense_data());
-            } else {
-                return std::nullopt;
-            }
-        }
-
-        void add_to_group(size_t hash, EntityID id) {
-            auto it = groups.find(hash);
-            if (it != groups.end()) {
-                it->second.emplace(id, id);
-            }
-        }
-
-        void add_group(std::span<std::string> components) {
-            groups.emplace(get_group_hash(components), utils::SparseSet<EntityID>{});
-        }
-
-        template <ComponentType T>
-        ComponentNumericID register_component() {
-            ComponentNumericID id = component_data.size();
-            component_data.emplace_back();
-            type_registry.emplace(typeid(T).name(), id);
-        }
-
         template <ComponentType T>
         void push_component(EntityID id, T&& e) {
             auto it = type_registry.find(typeid(T).name());
