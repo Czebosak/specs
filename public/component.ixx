@@ -5,17 +5,10 @@ module;
 
 export module specs.component;
 
-#include "macros.hpp"
-
 namespace specs {
     export using ComponentID = std::string;
-    
-    export template <typename T>
-    struct IsResource : std::false_type {};
 
     export template <typename T>
-    struct IsComponent : std::false_type {};
-
-    export template <typename T>
-    concept ComponentType = IsComponent<T>::value;
+    concept ComponentType = std::is_class_v<T>
+                         || std::is_enum_v<T>;
 }

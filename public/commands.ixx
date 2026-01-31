@@ -6,21 +6,23 @@ export module specs.commands;
 
 import specs.world;
 import specs.entity;
+import specs.component_storage;
 
 namespace specs {
     struct Command {
         virtual ~Command();
 
-        virtual void apply(World& world) = 0;
+        virtual void apply(ComponentStorage& world) = 0;
     };
 
     template <typename T>
     struct InsertComponentCommand : Command {
-        int entity;
+        EntityID entity;
         T component;
-        InsertComponentCommand(int e, T c) : entity(e), component(std::move(c)) {}
-        void apply(World& world) override {
-            world.insertComponent<T>(entity, std::move(component));
+        InsertComponentCommand(EntityID e, T c) : entity(e), component(std::move(c)) {}
+
+        void apply(ComponentStorage& cs) override {
+            cs.push_component(entity, component);
         }
     };
 

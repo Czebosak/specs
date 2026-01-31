@@ -70,6 +70,15 @@ namespace specs {
             type_registry.emplace(typeid(T).name(), id);
         }
 
+        template <ComponentType T>
+        void push_component(EntityID id, T&& e) {
+            auto it = type_registry.find(typeid(T).name());
+            if (it == type_registry.end()) return;
+
+            auto& component_set = component_data[it->second];
+            component_set.push<T>(id, std::forward<T>(e));
+        }
+
         template <ComponentType T, typename... Args>
         void emplace_component(EntityID id, Args&&... args) {
             auto it = type_registry.find(typeid(T).name());

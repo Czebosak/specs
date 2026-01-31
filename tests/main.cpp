@@ -1,7 +1,11 @@
 import specs.schedule;
 import specs.component;
+import specs.query;
 
 #include <print>
+
+template<specs::QueriedComponentType... QueriedComponents>
+using Query = specs::Query<QueriedComponents...>;
 
 struct Position {
     float x, y, z;
@@ -29,7 +33,7 @@ int main() {
 
     //schedule.register_system([](Position& pos, const Velocity& veltime) {});
 
-    schedule.register_system([]() {
+    schedule.register_system([](Query<const Position&>) {
         std::println("skibdi tetst");
     });
 

@@ -2,12 +2,31 @@ module;
 
 #include <tuple>
 #include <span>
+#include <type_traits>
+#include <string_view>
+#include <vector>
 
 export module specs.query;
 
 import specs.component;
 
 namespace specs {
+    class Schedule;
+
+    export template <typename T>
+    concept QueriedComponentType = std::is_lvalue_reference_v<T> ||
+                                   ComponentType<std::remove_cvref_t<T>>;
+    
+    template <typename T>
+    constexpr bool is_const_ref_v =
+        std::is_lvalue_reference_v<T> &&
+        std::is_const_v<std::remove_reference_t<T>>;
+    
+    template <typename T>
+    constexpr bool is_mut_ref_v =
+        std::is_lvalue_reference_v<T> &&
+        !std::is_const_v<std::remove_reference_t<T>>;
+
     template <typename... Spans>
     class ZipIterator {
         std::tuple<Spans...> spans;
@@ -34,10 +53,18 @@ namespace specs {
         }
     };
 
-    export template <ComponentType... QueriedComponents>
+    export template <QueriedComponentType... QueriedComponents>
+    requires (sizeof...(QueriedComponents) > 0)
     class Query {
     private:
-        std::tuple<std::span<QueriedComponents>...> data;
+        struct SortedQuery {
+            std::vector<std::string_view> immutable_components;
+            std::vector<std::string_view> mutable_components;
+            std::vector<std::string_view> immutable_resources;
+            std::vector<std::string_view> mutable_resources;
+        };
+
+        std::tuple<std::span<std::remove_reference_t<QueriedComponents>>...> data;
     public:
         auto single() {
             return std::apply([](auto&... spans) {

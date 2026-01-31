@@ -35,6 +35,27 @@ namespace specs::utils {
             return id % PAGE_SIZE;
         }
     public:
+        T& push(EntityID id, T&& e) {
+            size_t dense_i = dense.size();
+            T& ref = dense.emplace_back(std::forward<T>(e));
+            dense_to_id.emplace_back(id);
+
+            size_t page_i = get_page_index(id);
+            size_t i = get_index_in_page(id);
+
+            if (page_i >= sparse.size()) {
+                sparse.resize(page_i + 1);
+            }
+
+            if (i >= sparse[page_i].capacity()) {
+                sparse[page_i].resize(i + 1, NULL_INDEX);
+            }
+
+            sparse[page_i][i] = dense_i;
+
+            return ref;
+        }
+
         template <typename... Args>
         T& emplace(EntityID id, Args&&... args) {
             size_t dense_i = dense.size();
@@ -104,6 +125,37 @@ namespace specs::utils {
             return id % PAGE_SIZE;
         }
     public:
+        template <typename T>
+        T& push(EntityID id, T&& e) {
+            assert(reinterpret_cast<size_t>(dense.data()) % alignof(T) == 0);
+
+            size_t offset = dense.size();
+
+            if (offset >= dense.capacity() - sizeof(T)) {
+                dense.reserve(dense.capacity() * 2);
+            }
+
+            dense.resize(offset + sizeof(T));
+
+            T* ptr = new (&dense[offset]) T(std::forward<T>(e));
+            dense_to_id.emplace_back(id);
+
+            size_t page_i = get_page_index(id);
+            size_t i = get_index_in_page(id);
+
+            if (page_i >= sparse.size()) {
+                sparse.resize(page_i + 1);
+            }
+
+            if (i >= sparse[page_i].capacity()) {
+                sparse[page_i].resize(i + 1, NULL_INDEX);
+            }
+
+            sparse[page_i][i] = offset;
+
+            return *ptr;
+        }
+
         template <typename T, typename... Args>
         T& emplace(EntityID id, Args&&... args) {
             assert(reinterpret_cast<size_t>(dense.data()) % alignof(T) == 0);
