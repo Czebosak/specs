@@ -1,9 +1,10 @@
 module;
 
+#include <algorithm>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <typeinfo>
-#include <print>
 #include <cstdint>
 
 #include <ctti/nameof.hpp>
@@ -25,7 +26,7 @@ namespace specs {
     };
 
     struct ScheduleFrame {
-        ankerl::unordered_dense::map<std::string_view, ComponentData> used_components;
+        ankerl::unordered_dense::map<size_t, ComponentData> used_components;
         size_t end_index;
     };
 
@@ -76,7 +77,7 @@ namespace specs {
         std::vector<SystemID> ordered;
         std::vector<ScheduleFrame> frames;
 
-        std::vector<std::string_view> query_data;
+        std::vector<size_t> query_data;
         std::vector<AllocatedQuery> allocated_queries;
 
         template <SystemFunc Func, typename Tuple, std::size_t... I>
@@ -168,10 +169,10 @@ namespace specs {
                 AllocatedQuery q = allocated_queries[query_index];
 
                 for (int i = 0; i < q.c_count + q.mutable_c_count + q.r_count + q.mutable_r_count; i++) {
-                    std::string_view component_name = query_data[q.start_index + i];
+                    ComponentID component_id = query_data[q.start_index + i];
                     bool is_mutable = i >= q.c_count;
 
-                    bool should_break = func(component_name, is_mutable);
+                    bool should_break = func(component_id, is_mutable);
                     if (should_break) break;
                 }
             }
@@ -184,8 +185,8 @@ namespace specs {
                 // Check for query component conflicts in frame
                 bool conflict_found = false;
 
-                for_each_component_in_system_query(query_indices, [&](std::string_view component_name, bool is_mutable) {
-                    auto it = frame.used_components.find(component_name);
+                for_each_component_in_system_query(query_indices, [&](ComponentID component_id, bool is_mutable) {
+                    auto it = frame.used_components.find(component_id);
                     if (it != frame.used_components.end() && (it->second.is_mutable || is_mutable)) {
                         conflict_found = true;
                         return true;
@@ -208,8 +209,8 @@ namespace specs {
                 chosen_frame->end_index = ending_index;
             }
             
-            for_each_component_in_system_query(query_indices, [chosen_frame](std::string_view component_name, bool is_mutable) {
-                chosen_frame->used_components.emplace(component_name, is_mutable);
+            for_each_component_in_system_query(query_indices, [chosen_frame](ComponentID component_id, bool is_mutable) {
+                chosen_frame->used_components.emplace(component_id, is_mutable);
                 return true;
             });
 
@@ -219,15 +220,22 @@ namespace specs {
         }
 
         template <typename Func, typename... Parameters>
-        static void system_thunk(ComponentStorage& cs, std::span<AllocatedQuery> queries, std::span<std::string_view> query_data) {
+        static void system_thunk(ComponentStorage& cs, std::span<AllocatedQuery> queries, std::span<ComponentID> query_data) {
             std::tuple<Parameters...> parameter_tuple;
+
+            int query_idx = 0;
 
             [&]<std::size_t... Is>(std::index_sequence<Is...>) {
                 ([&]<std::size_t I>() {
                     using Parameter = std::tuple_element_t<I, std::tuple<Parameters...>>;
 
                     if constexpr (SpecializationOf<Parameter, Query>) {
-                        std::get<I>(parameter_tuple) = Parameter{};
+                        const AllocatedQuery& q = queries[query_idx];
+                        std::span components{&query_data[q.start_index], static_cast<size_t>(q.c_count + q.mutable_c_count)};
+
+                        auto matched = cs.match_archetypes(components);
+
+                        std::get<I>(parameter_tuple) = Parameter(matched);
                     }
                 }.template operator()<Is>(), ...);
             }(std::index_sequence_for<Parameters...>{});
@@ -271,10 +279,19 @@ namespace specs {
                     
                     query_data.reserve(total_size);
 
-                    query_data.insert(query_data.end(), parsed.immutable_components.begin(), parsed.immutable_components.end());
-                    query_data.insert(query_data.end(), parsed.mutable_components.begin(), parsed.mutable_components.end());
-                    query_data.insert(query_data.end(), parsed.immutable_resources.begin(), parsed.immutable_resources.end());
-                    query_data.insert(query_data.end(), parsed.mutable_resources.begin(), parsed.mutable_resources.end());
+                    ankerl::unordered_dense::hash<std::string_view> hasher;
+
+                    auto append_hashed = [&](const auto& src) {
+                        std::transform(src.begin(), src.end(),
+                            std::back_inserter(query_data),
+                            [&](const auto& v) { return hasher(v); }
+                        );
+                    };
+
+                    append_hashed(parsed.immutable_components);
+                    append_hashed(parsed.mutable_components);
+                    append_hashed(parsed.immutable_resources);
+                    append_hashed(parsed.mutable_resources);
                 }
             }.template operator()<Parameters>(), ...);
 
@@ -288,14 +305,12 @@ namespace specs {
 
             return id;
         }
-        
-        void run() {
+
+        void run(ComponentStorage& cs) {
             int next_index = 0;
             for (auto& frame : frames) {
                 for (int i = next_index; i < frame.end_index; i++) {
-                    std::println("sdg");
-                    ComponentStorage* cs = nullptr;
-                    systems[i].func(*cs, std::span<AllocatedQuery>{allocated_queries}, query_data);
+                    systems[i].func(cs, std::span<AllocatedQuery>{allocated_queries}, query_data);
                 }
                 next_index = frame.end_index + 1;
             }

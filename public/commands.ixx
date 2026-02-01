@@ -22,7 +22,7 @@ namespace specs {
         InsertComponentCommand(EntityID e, T c) : entity(e), component(std::move(c)) {}
 
         void apply(ComponentStorage& cs) override {
-            cs.push_component(entity, component);
+            //cs.push_component(entity, component);
         }
     };
 

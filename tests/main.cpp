@@ -1,6 +1,7 @@
 import specs.schedule;
 import specs.component;
 import specs.query;
+import specs.world;
 
 #include <print>
 
@@ -20,8 +21,8 @@ struct Player {
 };
 
 int main() {
-    /* specs::World world;
-    specs::EntityHandle e = world.create_entity();
+    specs::World world;
+    /* specs::EntityHandle e = world.create_entity();
 
     std::cout << e.id << e.generation << std::endl;
 
@@ -29,15 +30,13 @@ int main() {
 
     std::cout << e.id << e.generation << std::endl; */
 
-    specs::Schedule schedule;
-
     //schedule.register_system([](Position& pos, const Velocity& veltime) {});
 
-    schedule.register_system([](Query<const Position&>) {
+    world.get_schedule().register_system([](Query<const Position&>) {
         std::println("skibdi tetst");
     });
 
-    schedule.run();
+    world.run();
 
     std::println("WE ARE HEERE");
 

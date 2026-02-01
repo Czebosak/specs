@@ -32,6 +32,8 @@ namespace specs {
         /* std::unordered_map<std::string, ComponentNumericID> type_registry; */
         std::vector<Archetype> archetypes;
 
+        std::vector<EntityLocation> entity_locations;
+
         ankerl::unordered_dense::map<ComponentID, boost::container::small_vector<uint32_t, 6>> component_to_archetype;
     public:
         auto match_archetypes(std::span<ComponentID> queried_components) {
@@ -62,7 +64,14 @@ namespace specs {
                     }
                 }
             }
-            return boost::container::small_vector<Archetype*, 8>{std::move(matched)};
+
+            boost::container::small_vector<std::span<uint8_t>, 8> result;
+            for (Archetype* a : matched) {
+                for (ComponentID queried_component : queried_components) {
+                    result.emplace_back(a->get_column_data(queried_component));
+                }
+            }
+            return result;
         }
         /* template <ComponentType T>
         void push_component(EntityID id, T&& e) {

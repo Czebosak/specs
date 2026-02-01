@@ -1,12 +1,12 @@
 module;
 
-#include <cstdint>
+#include <cstddef>
 #include <type_traits>
 
 export module specs.component;
 
 namespace specs {
-    export using ComponentID = uint32_t;
+    export using ComponentID = size_t;
 
     export template <typename T>
     concept ComponentType = std::is_class_v<T>

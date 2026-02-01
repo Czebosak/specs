@@ -3,6 +3,7 @@ module;
 #include <tuple>
 #include <span>
 #include <type_traits>
+#include <cstdint>
 #include <string_view>
 #include <vector>
 
@@ -56,6 +57,10 @@ namespace specs {
     export template <QueriedComponentType... QueriedComponents>
     requires (sizeof...(QueriedComponents) > 0)
     class Query {
+    public:
+        struct Chunk {
+            std::tuple<std::span<std::remove_reference_t<QueriedComponents>>...> data;
+        };
     private:
         struct SortedQuery {
             std::vector<std::string_view> immutable_components;
@@ -64,15 +69,22 @@ namespace specs {
             std::vector<std::string_view> mutable_resources;
         };
 
-        struct Chunk {
-            std::tuple<std::span<std::remove_reference_t<QueriedComponents>>...> data;
-        };
-
         std::vector<Chunk> chunks;
     public:
         explicit Query() {}
 
-        explicit Query(std::vector<Chunk>&& chunks) : chunks(std::forward(chunks)) {}
+        explicit Query(std::span<std::span<uint8_t>> data) {
+            chunks.resize(data.size());
+            for (int i = 0; i < data.size(); i++) {
+                [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+                    ([&]<std::size_t I>() {
+                        using Component = std::tuple_element_t<I, std::tuple<QueriedComponents...>>;
+
+                        std::get<I>(chunks[i].data) = std::span{reinterpret_cast<std::remove_reference_t<Component>*>(data[i + I].data()), data[i + I].size() / sizeof(std::remove_reference_t<Component>)};
+                    }.template operator()<Is>(), ...);
+                }(std::index_sequence_for<QueriedComponents...>{});
+            }
+        }
         /* auto single() {
             return std::apply([](auto&... spans) {
                 return std::forward_as_tuple(spans[0]...);

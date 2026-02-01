@@ -68,5 +68,10 @@ namespace specs {
                 column.data.resize(column.data.size() - column.type_size);
             }
         }
+
+        std::span<uint8_t> get_column_data(ComponentID component_id) {
+            auto it = components.find(component_id);
+            return columns[it->second].data;
+        }
     };
 }
