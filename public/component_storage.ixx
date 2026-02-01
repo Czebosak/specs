@@ -14,6 +14,7 @@ module;
 
 #include <ankerl/unordered_dense.h>
 #include <boost/container/small_vector.hpp>
+#include <ctti/nameof.hpp>
 
 export module specs.component_storage;
 
@@ -22,6 +23,10 @@ import specs.entity;
 import specs.component;
 
 import :archetype;
+
+export struct Velocity {
+    float value[3];
+};
 
 namespace specs {
     export class ComponentStorage {
@@ -73,6 +78,17 @@ namespace specs {
             }
             return result;
         }
+
+        ComponentStorage() {
+            uint32_t i = archetypes.size();
+            size_t type_sizes[] = { sizeof(Velocity) };
+            ComponentID component_id[] = { ankerl::unordered_dense::hash<std::string_view>{}(std::string_view(ctti::nameof<Velocity>())) };
+            archetypes.emplace_back(type_sizes, component_id);
+            component_to_archetype.emplace(component_id[0], boost::container::small_vector<uint32_t, 6>{ i });
+            Velocity v = { {0.0f, 0.0f, 0.0f} };
+            archetypes[i].push(component_id[0], &v);
+        }
+
         /* template <ComponentType T>
         void push_component(EntityID id, T&& e) {
             auto it = type_registry.find(typeid(T).name());

@@ -85,6 +85,13 @@ namespace specs {
                 }(std::index_sequence_for<QueriedComponents...>{});
             }
         }
+
+        auto single() {
+            return std::apply([](auto&... spans) {
+                return std::forward_as_tuple(spans[0]...);
+            }, chunks[0].data);
+        }
+
         /* auto single() {
             return std::apply([](auto&... spans) {
                 return std::forward_as_tuple(spans[0]...);

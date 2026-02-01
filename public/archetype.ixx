@@ -26,13 +26,26 @@ namespace specs {
         struct Column {
             std::vector<uint8_t> data;
             size_t type_size;
-            void(*destructor(void*));
+            void(*destructor)(void*);
         };
 
         std::vector<EntityID> entities;
         ankerl::unordered_dense::map<ComponentID, uint32_t> components;
         boost::container::small_vector<Column, 4> columns;
     public:
+        Archetype(std::span<size_t> type_sizes, std::span<ComponentID> component_ids) {
+            columns.resize(type_sizes.size());
+            for (int i = 0; i < type_sizes.size(); i++) {
+                columns[i].type_size = type_sizes[i];
+                columns[i].destructor = nullptr;
+                components.emplace(component_ids[0], 0);
+            }
+        }
+
+        void push_entity(EntityID id) {
+            entities.emplace_back(id);
+        }
+
         void push(ComponentID component_id, void* data) {
             auto it = components.find(component_id);
             Column& column = columns[it->second];

@@ -6,6 +6,8 @@ module;
 #include <string_view>
 #include <typeinfo>
 #include <cstdint>
+#include <print>
+#include <type_traits>
 
 #include <ctti/nameof.hpp>
 #include <boost/container/small_vector.hpp>
@@ -125,7 +127,7 @@ namespace specs {
 
         template <typename... QueriedComponents>
         static consteval auto parse_query() {
-            constexpr auto counts = count_categories();
+            constexpr auto counts = count_categories<QueriedComponents...>();
 
             constexpr ParsedQuery parsed = [&]() {
                 std::vector<std::string_view> immutable_components;
@@ -135,7 +137,7 @@ namespace specs {
                 mutable_components.reserve(std::get<1>(counts));
 
                 ([&]<typename T>() {
-                    std::string_view name = std::string_view(ctti::nameof<T>().begin(), ctti::nameof<T>().end());
+                    std::string_view name = std::string_view(ctti::nameof<std::remove_reference_t<T>>().begin(), ctti::nameof<std::remove_reference_t<T>>().end());
 
                     if constexpr (is_const_ref_v<T>) {
                         immutable_components.emplace_back(name);
@@ -269,7 +271,7 @@ namespace specs {
                         parsed.mutable_components.size(),
                         parsed.immutable_resources.size(),
                         parsed.mutable_resources.size(),
-                        query_data.size() + 1
+                        query_data.size()
                     );
 
                     size_t total_size = parsed.immutable_components.size() +
@@ -284,9 +286,12 @@ namespace specs {
                     auto append_hashed = [&](const auto& src) {
                         std::transform(src.begin(), src.end(),
                             std::back_inserter(query_data),
-                            [&](const auto& v) { return hasher(v); }
+                            [&](const auto& v) { std::println("{}", v); return hasher(v); }
                         );
                     };
+
+                    //std::print("{}", parsed.immu);
+                    //std::print("\n");
 
                     append_hashed(parsed.immutable_components);
                     append_hashed(parsed.mutable_components);
