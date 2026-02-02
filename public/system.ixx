@@ -7,12 +7,12 @@ module;
 
 export module specs.system;
 
-import specs.component_storage;
+import specs.storage;
 import specs.component;
 
 namespace specs {
     export struct System {
-        void (*func)(ComponentStorage&, std::span<AllocatedQuery>, std::span<ComponentID>);
+        void (*func)(Storage&, std::span<AllocatedQuery>, std::span<ComponentID>);
         uint32_t query_list_index;
         uint16_t query_count;
         bool disabled;

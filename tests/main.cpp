@@ -2,7 +2,7 @@ import specs.schedule;
 import specs.component;
 import specs.query;
 import specs.world;
-import specs.component_storage;
+import specs.storage;
 
 #include <print>
 

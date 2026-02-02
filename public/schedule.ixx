@@ -18,7 +18,7 @@ module;
 export module specs.schedule;
 
 import specs.component;
-import specs.component_storage;
+import specs.storage;
 import specs.system;
 import specs.query;
 
@@ -222,7 +222,7 @@ namespace specs {
         }
 
         template <typename Func, typename... Parameters>
-        static void system_thunk(ComponentStorage& cs, std::span<AllocatedQuery> queries, std::span<ComponentID> query_data) {
+        static void system_thunk(Storage& storage, std::span<AllocatedQuery> queries, std::span<ComponentID> query_data) {
             std::tuple<Parameters...> parameter_tuple;
 
             int query_idx = 0;
@@ -235,7 +235,7 @@ namespace specs {
                         const AllocatedQuery& q = queries[query_idx];
                         std::span components{&query_data[q.start_index], static_cast<size_t>(q.c_count + q.mutable_c_count)};
 
-                        auto matched = cs.match_archetypes(components);
+                        auto matched = storage.match_archetypes(components);
 
                         std::get<I>(parameter_tuple) = Parameter(matched);
                     }
@@ -311,11 +311,11 @@ namespace specs {
             return id;
         }
 
-        void run(ComponentStorage& cs) {
+        void run(Storage& storage) {
             int next_index = 0;
             for (auto& frame : frames) {
                 for (int i = next_index; i < frame.end_index; i++) {
-                    systems[i].func(cs, std::span<AllocatedQuery>{allocated_queries}, query_data);
+                    systems[i].func(storage, std::span<AllocatedQuery>{allocated_queries}, query_data);
                 }
                 next_index = frame.end_index + 1;
             }

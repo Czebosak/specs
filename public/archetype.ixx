@@ -8,7 +8,7 @@ module;
 #include <ankerl/unordered_dense.h>
 #include <boost/container/small_vector.hpp>
 
-export module specs.component_storage:archetype;
+export module specs.storage:archetype;
 
 import specs.entity;
 import specs.component;
@@ -23,21 +23,23 @@ namespace specs {
 
     export class Archetype {
     private:
+        using Destructor = void(*)(void*);
+
         struct Column {
             std::vector<uint8_t> data;
-            size_t type_size;
-            void(*destructor)(void*);
+            uint32_t type_size;
+            Destructor destructor;
         };
 
         std::vector<EntityID> entities;
         ankerl::unordered_dense::map<ComponentID, uint32_t> components;
         boost::container::small_vector<Column, 4> columns;
     public:
-        Archetype(std::span<size_t> type_sizes, std::span<ComponentID> component_ids) {
+        Archetype(std::span<uint32_t> type_sizes, std::span<ComponentID> component_ids, std::span<Destructor> destructors) {
             columns.resize(type_sizes.size());
             for (int i = 0; i < type_sizes.size(); i++) {
                 columns[i].type_size = type_sizes[i];
-                columns[i].destructor = nullptr;
+                columns[i].destructor = destructors[i];
                 components.emplace(component_ids[0], 0);
             }
         }
