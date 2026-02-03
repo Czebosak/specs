@@ -1,7 +1,5 @@
 module;
 
-#include <concurrentqueue.h>
-
 export module specs.world:worker;
 
 import specs.commands;

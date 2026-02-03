@@ -92,6 +92,22 @@ namespace specs {
 
             return archetype_i;
         }
+
+        void move_component_data(EntityID id, Archetype* new_archetype) {
+            EntityLocation loc = entity_locations[id];
+            new_archetype->push_entity(id);
+
+            for (const auto& [k, v] : loc.archetype->components) {
+                auto it = loc.archetype->components.find(k);
+                if (it != loc.archetype->components.end()) {
+                    Archetype::Column& col = loc.archetype->columns[it->second];
+                    void* data = &col.data[loc.row * col.type_size];
+                    new_archetype->push(v, data);
+                }
+            }
+
+            loc.archetype->erase(loc.row, entity_locations);
+        }
     public:
         auto match_archetypes(std::span<ComponentID> queried_components) {
             boost::container::small_vector<Archetype*, 32> matched;
@@ -170,12 +186,42 @@ namespace specs {
         }
 
         template <ComponentType T>
-        void insert_component(EntityID id, T&& e) {
+        void insert_component(EntityID id, T&& c) {
+            ComponentID hash = ankerl::unordered_dense::hash<std::string_view>{}(ctti::nameof<T>());
 
+            ComponentID set_hash = hash;
+            if (entity_locations[id].archetype != nullptr) {
+                for (const auto& [c, _] : entity_locations[id].archetype->components) {
+                    set_hash += c;
+                }
+                set_hash = ankerl::unordered_dense::hash<ComponentID>{}(hash);
+            }
+
+            Archetype* new_archetype;
+
+            auto it = component_set_to_archetype.find(set_hash);
+            if (it != component_set_to_archetype.end()) {
+                new_archetype = &archetypes[it->second];
+            } else {
+                boost::container::small_vector<ComponentID, 6> components;
+                for (const auto& [c, _] : entity_locations[id].archetype->components) {
+                    components.emplace_back(c);
+                }
+                components.emplace_back(hash);
+
+                new_archetype = &archetypes[create_new_archetype(components)];
+            }
+
+            size_t row = new_archetype->entities.size();
 
             if (entity_locations[id].archetype != nullptr) {
-
+                move_component_data(id, new_archetype);
             }
+
+            new_archetype->push(hash, static_cast<void*>(&c));
+
+            entity_locations[id].archetype = new_archetype;
+            entity_locations[id].row = row;
         }
 
         /* template <ComponentType T>

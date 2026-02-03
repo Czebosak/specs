@@ -21,6 +21,8 @@ namespace specs {
         size_t row;
     };
 
+    export class Storage;
+
     export class Archetype {
     private:
         using Destructor = void(*)(void*);
@@ -34,6 +36,8 @@ namespace specs {
         std::vector<EntityID> entities;
         ankerl::unordered_dense::map<ComponentID, uint32_t> components;
         boost::container::small_vector<Column, 4> columns;
+
+        friend specs::Storage;
     public:
         Archetype(std::span<uint32_t> type_sizes, std::span<ComponentID> component_ids, std::span<Destructor> destructors) {
             columns.resize(type_sizes.size());
@@ -47,10 +51,9 @@ namespace specs {
         void push_entity(EntityID id) {
             entities.emplace_back(id);
         }
-
-        void push(ComponentID component_id, void* data) {
-            auto it = components.find(component_id);
-            Column& column = columns[it->second];
+        
+        void push(uint32_t column_index, void* data) {
+            Column& column = columns[column_index];
 
             if (column.data.capacity() == column.data.size()) {
                 column.data.reserve(column.data.size() * 2);
@@ -63,7 +66,14 @@ namespace specs {
             memcpy(column.data.data() + old_size, data, column.type_size);
         }
 
+        void push(ComponentID component_id, void* data) {
+            auto it = components.find(component_id);
+            push(it->second, data);
+        }
+
         void erase(size_t row, std::span<EntityLocation> entity_locations) {
+            assert(false); // TODO: Also erase entity id
+
             bool is_last = row + 1 == entities.size();
             if (!is_last) {
                 EntityID last_id = entities.back();
