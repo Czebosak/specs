@@ -286,12 +286,9 @@ namespace specs {
                     auto append_hashed = [&](const auto& src) {
                         std::transform(src.begin(), src.end(),
                             std::back_inserter(query_data),
-                            [&](const auto& v) { std::println("{}", v); return hasher(v); }
+                            [&](const auto& v) { return hasher(v); }
                         );
                     };
-
-                    //std::print("{}", parsed.immu);
-                    //std::print("\n");
 
                     append_hashed(parsed.immutable_components);
                     append_hashed(parsed.mutable_components);

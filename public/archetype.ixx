@@ -17,8 +17,8 @@ namespace specs {
     export class Archetype;
 
     export struct EntityLocation {
-        Archetype* archetype;
-        size_t row;
+        uint32_t archetype;
+        uint32_t row;
     };
 
     export class Storage;
@@ -71,14 +71,15 @@ namespace specs {
             push(it->second, data);
         }
 
-        void erase(size_t row, std::span<EntityLocation> entity_locations) {
-            assert(false); // TODO: Also erase entity id
-
+        void erase(uint32_t row, std::span<EntityLocation> entity_locations) {
             bool is_last = row + 1 == entities.size();
             if (!is_last) {
                 EntityID last_id = entities.back();
                 entity_locations[last_id].row = row;
             }
+
+            std::swap(entities[row], entities.back());
+            entities.resize(entities.size() - 1);
 
             for (Column& column : columns) {
                 if (!is_last) {

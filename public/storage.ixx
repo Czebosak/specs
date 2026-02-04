@@ -10,7 +10,10 @@ module;
 #include <any>
 #include <utility>
 #include <variant>
+#include <cstdint>
 #include <cassert>
+#include <print>
+#include <limits>
 
 #include <ankerl/unordered_dense.h>
 #include <boost/container/small_vector.hpp>
@@ -25,6 +28,10 @@ import specs.component;
 import :archetype;
 
 export struct Velocity {
+    float value[3];
+};
+
+export struct Position {
     float value[3];
 };
 
@@ -53,6 +60,8 @@ namespace specs {
         };
 
         ankerl::unordered_dense::map<ComponentID, ComponentInfo> component_infos;
+
+        static constexpr uint32_t NO_ARCHETYPE = std::numeric_limits<uint32_t>::max();
 
         ComponentID combine_hash(std::span<ComponentID> values) {
             ComponentID sum = 0;
@@ -95,18 +104,19 @@ namespace specs {
 
         void move_component_data(EntityID id, Archetype* new_archetype) {
             EntityLocation loc = entity_locations[id];
-            new_archetype->push_entity(id);
 
-            for (const auto& [k, v] : loc.archetype->components) {
-                auto it = loc.archetype->components.find(k);
-                if (it != loc.archetype->components.end()) {
-                    Archetype::Column& col = loc.archetype->columns[it->second];
+            Archetype& a = archetypes[loc.archetype];
+
+            for (const auto& [k, v] : a.components) {
+                auto it = a.components.find(k);
+                if (it != a.components.end()) {
+                    Archetype::Column& col = a.columns[it->second];
                     void* data = &col.data[loc.row * col.type_size];
                     new_archetype->push(v, data);
                 }
             }
 
-            loc.archetype->erase(loc.row, entity_locations);
+            a.erase(loc.row, entity_locations);
         }
     public:
         auto match_archetypes(std::span<ComponentID> queried_components) {
@@ -147,16 +157,10 @@ namespace specs {
             return result;
         }
 
-        Storage() {
-            uint32_t i = archetypes.size();
-            uint32_t type_sizes[] = { sizeof(Velocity) };
-            ComponentID component_id[] = { ankerl::unordered_dense::hash<std::string_view>{}(std::string_view(ctti::nameof<Velocity>())) };
-            void(*destructors[])(void*) = { nullptr };
-
-            archetypes.emplace_back(type_sizes, component_id, destructors);
-            component_to_archetype.emplace(component_id[0], boost::container::small_vector<uint32_t, 6>{ i });
-            Velocity v = { {0.0f, 0.0f, 0.0f} };
-            archetypes[i].push(component_id[0], &v);
+        Storage() : next_id(0) {
+            EntityHandle handle = spawn_entity();
+            insert_component(handle.id, Position { { 10.0f } });
+            insert_component(handle.id, Velocity { { 0.0f } });
         }
 
         EntityHandle spawn_entity() {
@@ -166,10 +170,10 @@ namespace specs {
                 EntityID id = recycled_ids.back();
                 recycled_ids.pop_back();
                 handle = { .id = id, .generation = generations[id] };
-                entity_locations[handle.id] = { nullptr, 0 };
+                entity_locations[handle.id] = { NO_ARCHETYPE, 0 };
             } else {
                 handle = { .id = next_id++, .generation = 0 };
-                entity_locations.emplace_back(nullptr, 0);
+                entity_locations.emplace_back(NO_ARCHETYPE, 0);
                 if (generations.size() + 1 < handle.id) {}
                 generations.emplace_back(0);
             }
@@ -187,40 +191,54 @@ namespace specs {
 
         template <ComponentType T>
         void insert_component(EntityID id, T&& c) {
-            ComponentID hash = ankerl::unordered_dense::hash<std::string_view>{}(ctti::nameof<T>());
+            Archetype* old_archetype = nullptr;
+            if (entity_locations[id].archetype != NO_ARCHETYPE) {
+                old_archetype = &archetypes[entity_locations[id].archetype];
+            };
+
+            ComponentID hash = ankerl::unordered_dense::hash<std::string_view>{}(std::string_view(ctti::nameof<T>()));
+
+            if (!component_infos.contains(hash)) {
+                component_infos.emplace(hash, ComponentInfo { sizeof(T), nullptr });
+            }
 
             ComponentID set_hash = hash;
-            if (entity_locations[id].archetype != nullptr) {
-                for (const auto& [c, _] : entity_locations[id].archetype->components) {
+            if (old_archetype != nullptr) {
+                for (const auto& [c, _] : old_archetype->components) {
                     set_hash += c;
                 }
                 set_hash = ankerl::unordered_dense::hash<ComponentID>{}(hash);
             }
 
-            Archetype* new_archetype;
+            uint32_t new_archetype_idx;
 
             auto it = component_set_to_archetype.find(set_hash);
             if (it != component_set_to_archetype.end()) {
-                new_archetype = &archetypes[it->second];
+                new_archetype_idx = it->second;
             } else {
                 boost::container::small_vector<ComponentID, 6> components;
-                for (const auto& [c, _] : entity_locations[id].archetype->components) {
-                    components.emplace_back(c);
+                if (old_archetype != nullptr) {
+                    for (const auto& [c, _] : old_archetype->components) {
+                        components.emplace_back(c);
+                    }
                 }
                 components.emplace_back(hash);
 
-                new_archetype = &archetypes[create_new_archetype(components)];
+                new_archetype_idx = create_new_archetype(components);
             }
 
-            size_t row = new_archetype->entities.size();
+            Archetype& new_archetype = archetypes[new_archetype_idx];
 
-            if (entity_locations[id].archetype != nullptr) {
-                move_component_data(id, new_archetype);
+            uint32_t row = new_archetype.entities.size();
+
+            if (old_archetype != nullptr) {
+                move_component_data(id, &new_archetype);
             }
 
-            new_archetype->push(hash, static_cast<void*>(&c));
+            new_archetype.push_entity(id);
+            new_archetype.push(hash, static_cast<void*>(&c));
 
-            entity_locations[id].archetype = new_archetype;
+            entity_locations[id].archetype = new_archetype_idx;
             entity_locations[id].row = row;
         }
 

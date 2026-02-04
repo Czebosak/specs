@@ -12,10 +12,16 @@ using Query = specs::Query<QueriedComponents...>;
 int main() {
     specs::World world;
 
-    world.get_schedule().register_system([](Query<Velocity&> q) {
+    /* world.get_schedule().register_system([](Query<Velocity&> q) {
         auto [v] = q.single();
-        std::println("{}", v.value[0]);
         v.value[0] += 0.01f;
+    }); */
+
+    world.get_schedule().register_system([](Query<Position&, Velocity&> q) {
+        auto [p, v] = q.single();
+        p.value[0] -= 0.01f;
+        v.value[0] += 0.01f;
+        std::println("{}, {}", p.value[0], v.value[1]);
     });
 
     while (true)
