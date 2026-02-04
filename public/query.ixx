@@ -74,16 +74,17 @@ namespace specs {
         explicit Query() {}
 
         explicit Query(std::span<std::span<uint8_t>> data) {
-            chunks.resize(data.size());
-            for (int i = 0; i < data.size(); i++) {
-                [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-                    ([&]<std::size_t I>() {
-                        using Component = std::tuple_element_t<I, std::tuple<QueriedComponents...>>;
+            chunks.resize(1);
 
-                        std::get<I>(chunks[i].data) = std::span{reinterpret_cast<std::remove_reference_t<Component>*>(data[i + I].data()), data[i + I].size() / sizeof(std::remove_reference_t<Component>)};
-                    }.template operator()<Is>(), ...);
-                }(std::index_sequence_for<QueriedComponents...>{});
-            }
+            int i = 0; // temporary
+
+            [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+                ([&]<std::size_t I>() {
+                    using Component = std::tuple_element_t<I, std::tuple<QueriedComponents...>>;
+
+                    std::get<I>(chunks[i].data) = std::span{reinterpret_cast<std::remove_reference_t<Component>*>(data[I].data()), data[I].size() / sizeof(std::remove_reference_t<Component>)};
+                }.template operator()<Is>(), ...);
+            }(std::index_sequence_for<QueriedComponents...>{});
         }
 
         auto single() {

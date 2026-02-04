@@ -129,11 +129,12 @@ namespace specs {
                 }
                 std::span<uint32_t> archetype_indices = it->second;
 
-                if (matched.size() == 0) {
+                if (matched.empty()) {
                     for (uint32_t i : archetype_indices) {
                         Archetype& a = archetypes[i];
 
-                        matched.emplace_back(&a);
+                        if (!a.is_empty())
+                            matched.emplace_back(&a);
                     }
                 } else {
                     boost::container::small_vector<Archetype*, 32> intersection;
@@ -145,6 +146,10 @@ namespace specs {
                             intersection.emplace_back(&a);
                         }
                     }
+
+                    if (intersection.empty()) break;
+
+                    matched = std::move(intersection);
                 }
             }
 
@@ -196,7 +201,7 @@ namespace specs {
                 old_archetype = &archetypes[entity_locations[id].archetype];
             };
 
-            ComponentID hash = ankerl::unordered_dense::hash<std::string_view>{}(std::string_view(ctti::nameof<T>()));
+            ComponentID hash = ankerl::unordered_dense::hash<std::string_view>{}(std::string_view(ctti::nameof<std::remove_cvref_t<T>>()));
 
             if (!component_infos.contains(hash)) {
                 component_infos.emplace(hash, ComponentInfo { sizeof(T), nullptr });

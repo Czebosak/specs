@@ -137,7 +137,7 @@ namespace specs {
                 mutable_components.reserve(std::get<1>(counts));
 
                 ([&]<typename T>() {
-                    std::string_view name = std::string_view(ctti::nameof<std::remove_reference_t<T>>().begin(), ctti::nameof<std::remove_reference_t<T>>().end());
+                    std::string_view name = std::string_view(ctti::nameof<std::remove_cvref_t<T>>().begin(), ctti::nameof<std::remove_cvref_t<T>>().end());
 
                     if constexpr (is_const_ref_v<T>) {
                         immutable_components.emplace_back(name);
@@ -166,9 +166,9 @@ namespace specs {
         };
 
         template <typename Func>
-        inline void for_each_component_in_system_query(std::span<uint32_t> query_indices, Func&& func) {
-            for (uint32_t query_index : query_indices) {
-                AllocatedQuery q = allocated_queries[query_index];
+        inline void for_each_component_in_system_query(uint32_t query_list_index, uint16_t query_count, Func&& func) {
+            for (int i = 0; i < query_count; i++) {
+                AllocatedQuery q = allocated_queries[i + query_list_index];
 
                 for (int i = 0; i < q.c_count + q.mutable_c_count + q.r_count + q.mutable_r_count; i++) {
                     ComponentID component_id = query_data[q.start_index + i];
@@ -180,14 +180,14 @@ namespace specs {
             }
         }
 
-        void schedule_system(SystemID id, std::span<uint32_t> query_indices) {
+        void schedule_system(SystemID id, uint32_t query_list_index, uint16_t query_count) {
             ScheduleFrame* chosen_frame = nullptr;
 
             for (auto& frame : frames) {
                 // Check for query component conflicts in frame
                 bool conflict_found = false;
 
-                for_each_component_in_system_query(query_indices, [&](ComponentID component_id, bool is_mutable) {
+                for_each_component_in_system_query(query_list_index, query_count, [&](ComponentID component_id, bool is_mutable) {
                     auto it = frame.used_components.find(component_id);
                     if (it != frame.used_components.end() && (it->second.is_mutable || is_mutable)) {
                         conflict_found = true;
@@ -211,7 +211,7 @@ namespace specs {
                 chosen_frame->end_index = ending_index;
             }
             
-            for_each_component_in_system_query(query_indices, [chosen_frame](ComponentID component_id, bool is_mutable) {
+            for_each_component_in_system_query(query_list_index, query_count, [chosen_frame](ComponentID component_id, bool is_mutable) {
                 chosen_frame->used_components.emplace(component_id, is_mutable);
                 return true;
             });
@@ -238,6 +238,7 @@ namespace specs {
                         auto matched = storage.match_archetypes(components);
 
                         std::get<I>(parameter_tuple) = Parameter(matched);
+                        query_idx++;
                     }
                 }.template operator()<Is>(), ...);
             }(std::index_sequence_for<Parameters...>{});
@@ -260,7 +261,8 @@ namespace specs {
 
         template <SystemFunc Func, SystemParameterType... Parameters>
         SystemID register_system_expl(Func&& func) {
-            std::vector<uint32_t> query_indices;
+            uint32_t query_list_index = allocated_queries.size();
+            uint16_t query_count = 0;
 
             ([&]<typename Parameter>() {
                 if constexpr (SpecializationOf<Parameter, Query>) {
@@ -294,16 +296,20 @@ namespace specs {
                     append_hashed(parsed.mutable_components);
                     append_hashed(parsed.immutable_resources);
                     append_hashed(parsed.mutable_resources);
+
+                    query_count++;
                 }
             }.template operator()<Parameters>(), ...);
 
             SystemID id = systems.size();
             systems.emplace_back(System {
                 .func = system_thunk<Func, Parameters...>,
+                .query_list_index = query_list_index,
+                .query_count = query_count,
                 .disabled = false,
             });
 
-            schedule_system(id, query_indices);
+            schedule_system(id, query_list_index, query_count);
 
             return id;
         }
@@ -312,9 +318,10 @@ namespace specs {
             int next_index = 0;
             for (auto& frame : frames) {
                 for (int i = next_index; i < frame.end_index; i++) {
-                    systems[i].func(storage, std::span<AllocatedQuery>{allocated_queries}, query_data);
+                    System& s = systems[i];
+                    s.func(storage, std::span<AllocatedQuery>{&allocated_queries[s.query_list_index], s.query_count}, query_data);
                 }
-                next_index = frame.end_index + 1;
+                next_index = frame.end_index;
             }
         }
     };

@@ -44,8 +44,12 @@ namespace specs {
             for (int i = 0; i < type_sizes.size(); i++) {
                 columns[i].type_size = type_sizes[i];
                 columns[i].destructor = destructors[i];
-                components.emplace(component_ids[0], 0);
+                components.emplace(component_ids[i], i);
             }
+        }
+
+        inline bool is_empty() {
+            return entities.empty();
         }
 
         void push_entity(EntityID id) {
