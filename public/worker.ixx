@@ -7,5 +7,8 @@ import specs.commands;
 namespace specs {
     export class Worker {
     public:
+        CommandQueue command_queue;
+
+        void run() {}
     };
 }

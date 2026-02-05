@@ -1,9 +1,9 @@
-
 module;
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <thread>
 
 export module specs.world;
 
@@ -11,6 +11,7 @@ import specs.entity;
 import specs.component;
 import specs.storage;
 import specs.schedule;
+import :worker;
 
 namespace specs {
     export enum class ComponentStorageType {
@@ -21,7 +22,10 @@ namespace specs {
     private:
         Storage storage;
         Schedule schedule;
+        std::vector<Worker> workers;
     public:
+        World(unsigned int worker_count = std::thread::hardware_concurrency()) : workers(worker_count) {}
+
         // Registers a new component
         // When adding a component with a templated function
         // to an entity that hasn't been registered it will

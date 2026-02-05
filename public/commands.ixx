@@ -39,18 +39,18 @@ namespace specs {
         }
     };
 
-    using CommandQueue = std::vector<std::unique_ptr<Command>>;
+    export using CommandQueue = std::vector<std::unique_ptr<Command>>;
 
     export class EntityCommands;
 
-    /* export class Commands {
+    export class Commands {
     private:
         CommandQueue& command_queue;
     public:
         Commands(CommandQueue& command_queue) : command_queue(command_queue) {}
 
         void spawn() {
-            command_queue.emplace_back(SpawnEntityCommand{});
+            command_queue.emplace_back(std::make_unique<SpawnEntityCommand>());
         }
     };
 
@@ -58,5 +58,5 @@ namespace specs {
     private:
         CommandQueue& command_queue;
         EntityID entity_id;
-    }; */
+    };
 }

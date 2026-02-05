@@ -12,7 +12,9 @@ import specs.component;
 
 namespace specs {
     export struct System {
-        void (*func)(Storage&, std::span<AllocatedQuery>, std::span<ComponentID>);
+        using SystemFunc = void(*)(Storage&, std::span<AllocatedQuery>, std::span<ComponentID>);
+
+        SystemFunc func;
         uint32_t query_list_index;
         uint16_t query_count;
         bool disabled;

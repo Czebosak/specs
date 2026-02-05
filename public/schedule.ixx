@@ -23,6 +23,8 @@ import specs.system;
 import specs.query;
 
 namespace specs {
+    export class Scheduler;
+
     struct ComponentData {
         bool is_mutable;
     };
@@ -58,7 +60,7 @@ namespace specs {
     };
 
     template <typename Func>
-    concept SystemFunc = []<typename... Args>(std::tuple<Args...>*) {
+    concept SystemFuncType = []<typename... Args>(std::tuple<Args...>*) {
         return (SystemParameterType<std::remove_cvref_t<Args>> && ...);
     }(static_cast<typename function_traits<std::decay_t<Func>>::args_tuple*>(nullptr));
 
@@ -82,7 +84,7 @@ namespace specs {
         std::vector<size_t> query_data;
         std::vector<AllocatedQuery> allocated_queries;
 
-        template <SystemFunc Func, typename Tuple, std::size_t... I>
+        template <SystemFuncType Func, typename Tuple, std::size_t... I>
         SystemID register_system_impl(Func&& func, std::index_sequence<I...>) {
             return register_system_expl<Func, std::tuple_element_t<I, Tuple>...>(
                 std::forward<Func>(func)
@@ -245,10 +247,12 @@ namespace specs {
 
             std::apply(Func{}, parameter_tuple);
         }
+
+        friend specs::Scheduler;
     public:
         void update();
 
-        template <SystemFunc Func>
+        template <SystemFuncType Func>
         SystemID register_system(Func&& func) {
             using traits = function_traits<std::decay_t<Func>>;
             using args_tuple = typename traits::args_tuple;
@@ -259,7 +263,7 @@ namespace specs {
             );
         }
 
-        template <SystemFunc Func, SystemParameterType... Parameters>
+        template <SystemFuncType Func, SystemParameterType... Parameters>
         SystemID register_system_expl(Func&& func) {
             uint32_t query_list_index = allocated_queries.size();
             uint16_t query_count = 0;
