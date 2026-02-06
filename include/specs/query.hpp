@@ -1,5 +1,3 @@
-module;
-
 #include <tuple>
 #include <span>
 #include <type_traits>
@@ -7,14 +5,12 @@ module;
 #include <string_view>
 #include <vector>
 
-export module specs.query;
-
-import specs.component;
+#include <specs/component.hpp>
 
 namespace specs {
     class Schedule;
 
-    export template <typename T>
+    template <typename T>
     concept QueriedComponentType = std::is_lvalue_reference_v<T> ||
                                    ComponentType<std::remove_cvref_t<T>>;
     
@@ -54,7 +50,7 @@ namespace specs {
         }
     }; */
 
-    export template <QueriedComponentType... QueriedComponents>
+    template <QueriedComponentType... QueriedComponents>
     requires (sizeof...(QueriedComponents) > 0)
     class Query {
     public:

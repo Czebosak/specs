@@ -1,0 +1,125 @@
+#include <specs/private/storage.hpp>
+
+specs::ComponentID specs::Storage::combine_hash(std::span<ComponentID> values) {
+    ComponentID sum = 0;
+
+    for (uint32_t v : values) {
+        sum += v;
+    }
+
+    return ankerl::unordered_dense::hash<ComponentID>{}(sum);
+}
+
+uint32_t specs::Storage::create_new_archetype(std::span<ComponentID> components) {
+    std::vector<uint32_t> type_sizes(components.size());
+    std::vector<void(*)(void*)> destructors(components.size());
+
+    for (int i = 0; i < components.size(); i++) {
+        auto it = component_infos.find(components[i]);
+        ComponentInfo& info = it->second;
+        type_sizes[i] = info.size;
+        destructors[i] = info.destructor;
+    }
+
+    uint32_t archetype_i = archetypes.size();
+    archetypes.emplace_back(type_sizes, components, destructors);
+    for (ComponentID component : components) {
+        auto it = component_to_archetype.find(component);
+        if (it != component_to_archetype.end()) {
+            it->second.emplace_back(archetype_i);
+        } else {
+            component_to_archetype.emplace(component, boost::container::small_vector<uint32_t, 6>{ archetype_i });
+        }
+    }
+
+    ComponentID combined = combine_hash(components);
+    component_set_to_archetype.emplace(combined, archetype_i);
+
+    return archetype_i;
+}
+
+void specs::Storage::move_component_data(EntityID id, Archetype* new_archetype) {
+    EntityLocation loc = entity_locations[id];
+
+    Archetype& a = archetypes[loc.archetype];
+
+    for (const auto& [k, v] : a.components) {
+        auto it = a.components.find(k);
+        if (it != a.components.end()) {
+            Archetype::Column& col = a.columns[it->second];
+            void* data = &col.data[loc.row * col.type_size];
+            new_archetype->push(v, data);
+        }
+    }
+
+    a.erase(loc.row, entity_locations);
+}
+
+boost::container::small_vector<std::span<uint8_t>, 8> specs::Storage::match_archetypes(std::span<ComponentID> queried_components) {
+    boost::container::small_vector<Archetype*, 32> matched;
+    for (ComponentID queried_component : queried_components) {
+        auto it = component_to_archetype.find(queried_component);
+        if (it == component_to_archetype.end()) {
+            matched.clear();
+            break;
+        }
+        std::span<uint32_t> archetype_indices = it->second;
+
+        if (matched.empty()) {
+            for (uint32_t i : archetype_indices) {
+                Archetype& a = archetypes[i];
+
+                if (!a.is_empty())
+                    matched.emplace_back(&a);
+            }
+        } else {
+            boost::container::small_vector<Archetype*, 32> intersection;
+
+            for (uint32_t i : archetype_indices) {
+                Archetype& a = archetypes[i];
+
+                if (std::find(matched.begin(), matched.end(), &a) != matched.end()) {
+                    intersection.emplace_back(&a);
+                }
+            }
+
+            if (intersection.empty()) break;
+
+            matched = std::move(intersection);
+        }
+    }
+
+    boost::container::small_vector<std::span<uint8_t>, 8> result;
+    for (Archetype* a : matched) {
+        for (ComponentID queried_component : queried_components) {
+            result.emplace_back(a->get_column_data(queried_component));
+        }
+    }
+    return result;
+}
+
+specs::EntityHandle specs::Storage::spawn_entity() {
+    EntityHandle handle;
+
+    if (!recycled_ids.empty()) {
+        EntityID id = recycled_ids.back();
+        recycled_ids.pop_back();
+        handle = { .id = id, .generation = generations[id] };
+        entity_locations[handle.id] = { NO_ARCHETYPE, 0 };
+    } else {
+        handle = { .id = next_id++, .generation = 0 };
+        entity_locations.emplace_back(NO_ARCHETYPE, 0);
+        if (generations.size() + 1 < handle.id) {}
+        generations.emplace_back(0);
+    }
+
+    return handle;
+}
+
+void specs::Storage::despawn_entity(EntityID id) {
+    if (id + 1 == entity_locations.size())
+        entity_locations.pop_back();
+
+    recycled_ids.emplace_back(id);
+    generations[id]++;
+}

@@ -1,8 +1,4 @@
-import specs.schedule;
-import specs.component;
-import specs.query;
-import specs.world;
-import specs.storage;
+#include <specs/world.hpp>
 
 #include <print>
 

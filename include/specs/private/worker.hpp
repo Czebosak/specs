@@ -1,11 +1,11 @@
-module;
+#pragma once
 
-export module specs.world:worker;
+#include <specs/private/system.hpp>
 
-import specs.commands;
+#include <specs/commands.hpp>
 
 namespace specs {
-    export class Worker {
+    class Worker {
     public:
         CommandQueue command_queue;
 

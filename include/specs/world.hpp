@@ -1,30 +1,29 @@
-module;
+#pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <vector>
 #include <thread>
 
-export module specs.world;
-
-import specs.entity;
-import specs.component;
-import specs.storage;
-import specs.schedule;
-import :worker;
+#include <specs/entity.hpp>
+#include <specs/component.hpp>
+#include <specs/private/storage.hpp>
+#include <specs/private/schedule.hpp>
 
 namespace specs {
-    export enum class ComponentStorageType {
+    class Worker;
+
+    enum class ComponentStorageType {
         SparseSet,
+        Archetype,
     };
     
-    export class World {
+    class World {
     private:
         Storage storage;
         Schedule schedule;
         std::vector<Worker> workers;
     public:
-        World(unsigned int worker_count = std::thread::hardware_concurrency()) : workers(worker_count) {}
+        World(unsigned int worker_count = std::thread::hardware_concurrency());
+
+        ~World();
 
         // Registers a new component
         // When adding a component with a templated function

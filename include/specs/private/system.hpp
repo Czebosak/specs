@@ -1,17 +1,16 @@
-module;
+#pragma once
 
 #include <cstdint>
 #include <span>
 
-#include <allocated_query.hpp>
+#include <specs/private/allocated_query.hpp>
 
-export module specs.system;
-
-import specs.storage;
-import specs.component;
+#include <specs/component.hpp>
 
 namespace specs {
-    export struct System {
+    class Storage;
+
+    struct System {
         using SystemFunc = void(*)(Storage&, std::span<AllocatedQuery>, std::span<ComponentID>);
 
         SystemFunc func;

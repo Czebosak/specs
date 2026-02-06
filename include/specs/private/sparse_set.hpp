@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include <vector>
 #include <cstddef>
@@ -6,16 +6,14 @@ module;
 #include <cassert>
 #include <span>
 
-export module specs.sparse_set;
-
-import specs.entity;
+#include <specs/entity.hpp>
 
 namespace specs::utils {
     #ifndef SPECS_PAGE_SIZE
     #define SPECS_PAGE_SIZE 1024 // default
     #endif
 
-    export template <typename T = uint8_t>
+    template <typename T = uint8_t>
     class SparseSet {
     private:
         static constexpr size_t PAGE_SIZE = SPECS_PAGE_SIZE;
@@ -105,7 +103,7 @@ namespace specs::utils {
     };
 
     // Type erased
-    export template <>
+    template <>
     class SparseSet<uint8_t> {
     private:
         static constexpr size_t PAGE_SIZE = SPECS_PAGE_SIZE;

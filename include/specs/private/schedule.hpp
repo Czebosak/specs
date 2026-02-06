@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include <algorithm>
 #include <iterator>
@@ -13,17 +13,15 @@ module;
 #include <boost/container/small_vector.hpp>
 #include <ankerl/unordered_dense.h>
 
-#include <allocated_query.hpp>
+#include <specs/private/allocated_query.hpp>
+#include <specs/private/storage.hpp>
+#include <specs/private/system.hpp>
 
-export module specs.schedule;
-
-import specs.component;
-import specs.storage;
-import specs.system;
-import specs.query;
+#include <specs/component.hpp>
+#include <specs/query.hpp>
 
 namespace specs {
-    export class Scheduler;
+    class Scheduler;
 
     struct ComponentData {
         bool is_mutable;
@@ -34,7 +32,7 @@ namespace specs {
         size_t end_index;
     };
 
-    export using SystemID = size_t;
+    using SystemID = size_t;
 
     template <typename T, template <typename...> class Template>
     struct is_specialization_of : std::false_type {};
@@ -64,7 +62,7 @@ namespace specs {
         return (SystemParameterType<std::remove_cvref_t<Args>> && ...);
     }(static_cast<typename function_traits<std::decay_t<Func>>::args_tuple*>(nullptr));
 
-    template <typename T>
+    /* template <typename T>
     constexpr bool is_const_ref_v =
         std::is_lvalue_reference_v<T> &&
         std::is_const_v<std::remove_reference_t<T>>;
@@ -72,9 +70,9 @@ namespace specs {
     template <typename T>
     constexpr bool is_mut_ref_v =
         std::is_lvalue_reference_v<T> &&
-        !std::is_const_v<std::remove_reference_t<T>>;
+        !std::is_const_v<std::remove_reference_t<T>>; */
 
-    export class Schedule {
+    class Schedule {
     private:
         std::vector<System> systems;
 
@@ -248,7 +246,7 @@ namespace specs {
             std::apply(Func{}, parameter_tuple);
         }
 
-        friend specs::Scheduler;
+        friend Scheduler;
     public:
         void update();
 

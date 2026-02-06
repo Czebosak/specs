@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -8,22 +8,20 @@ module;
 #include <ankerl/unordered_dense.h>
 #include <boost/container/small_vector.hpp>
 
-export module specs.storage:archetype;
-
-import specs.entity;
-import specs.component;
+#include <specs/entity.hpp>
+#include <specs/component.hpp>
 
 namespace specs {
-    export class Archetype;
+    class Archetype;
 
-    export struct EntityLocation {
+    struct EntityLocation {
         uint32_t archetype;
         uint32_t row;
     };
 
-    export class Storage;
+    class Storage;
 
-    export class Archetype {
+    class Archetype {
     private:
         using Destructor = void(*)(void*);
 

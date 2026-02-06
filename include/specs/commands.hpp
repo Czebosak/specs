@@ -1,13 +1,12 @@
-module;
+#pragma once
 
 #include <vector>
 #include <memory>
 
-export module specs.commands;
+#include <specs/private/storage.hpp>
 
-import specs.entity;
-import specs.component;
-import specs.storage;
+#include <specs/entity.hpp>
+#include <specs/component.hpp>
 
 namespace specs {
     struct Command {
@@ -39,11 +38,11 @@ namespace specs {
         }
     };
 
-    export using CommandQueue = std::vector<std::unique_ptr<Command>>;
+    using CommandQueue = std::vector<std::unique_ptr<Command>>;
 
-    export class EntityCommands;
+    class EntityCommands;
 
-    export class Commands {
+    class Commands {
     private:
         CommandQueue& command_queue;
     public:
@@ -54,7 +53,7 @@ namespace specs {
         }
     };
 
-    export class EntityCommands {
+    class EntityCommands {
     private:
         CommandQueue& command_queue;
         EntityID entity_id;
