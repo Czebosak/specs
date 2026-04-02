@@ -8,6 +8,8 @@ using Query = specs::Query<QueriedComponents...>;
 int main() {
     specs::World world;
 
+    std::println("sigma");
+
     world.get_schedule().register_system([](Query<Velocity&> q) {
         auto [v] = q.single();
         v.value[0] += 0.01f;

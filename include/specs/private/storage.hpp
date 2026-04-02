@@ -40,7 +40,7 @@ namespace specs {
         std::vector<EntityLocation> entity_locations;
 
         ankerl::unordered_dense::map<ComponentID, boost::container::small_vector<uint32_t, 6>> component_to_archetype;
-        
+
         ankerl::unordered_dense::map<ComponentID, uint32_t> component_set_to_archetype;
 
         struct ComponentInfo {

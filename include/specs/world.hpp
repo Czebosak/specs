@@ -1,11 +1,13 @@
 #pragma once
 
+#include <memory>
 #include <thread>
 
 #include <specs/entity.hpp>
 #include <specs/component.hpp>
+#include <specs/commands.hpp>
 #include <specs/private/storage.hpp>
-#include <specs/private/schedule.hpp>
+#include <specs/private/scheduler.hpp>
 
 namespace specs {
     class Worker;
@@ -20,6 +22,9 @@ namespace specs {
         Storage storage;
         Schedule schedule;
         std::vector<Worker> workers;
+        Scheduler scheduler;
+
+        CommandQueue command_queue;
     public:
         World(unsigned int worker_count = std::thread::hardware_concurrency());
 

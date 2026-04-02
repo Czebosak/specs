@@ -6,7 +6,6 @@
 #include <string_view>
 #include <typeinfo>
 #include <cstdint>
-#include <print>
 #include <type_traits>
 
 #include <ctti/nameof.hpp>

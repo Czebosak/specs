@@ -1,14 +1,25 @@
 #pragma once
 
+#include <condition_variable>
+#include <thread>
+
 #include <specs/private/system.hpp>
 
-#include <specs/commands.hpp>
-
 namespace specs {
-    class Worker {
-    public:
-        CommandQueue command_queue;
+    class Scheduler;
 
-        void run() {}
+    class Worker {
+    private:
+        std::jthread thread;
+
+        std::condition_variable condition_variable;
+
+        const Scheduler* scheduler;
+
+        void run();
+
+        void start(const Scheduler* scheduler);
+    public:
+        Worker();
     };
 }
