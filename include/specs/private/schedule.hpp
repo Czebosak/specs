@@ -179,7 +179,7 @@ namespace specs {
             }
         }
 
-        void schedule_system(SystemID id, uint32_t query_list_index, uint16_t query_count) {
+        void schedule_system(System&& system, uint32_t query_list_index, uint16_t query_count) {
             ScheduleFrame* chosen_frame = nullptr;
 
             for (auto& frame : frames) {
@@ -215,6 +215,9 @@ namespace specs {
                 return true;
             });
 
+            systems.emplace(systems.begin() + chosen_frame->end_index, std::forward<System&&>(system));
+
+            size_t x = chosen_frame->end_index;
             for (int i = (chosen_frame - frames.data()); i < frames.size(); i++) {
                 frames[i].end_index++;
             }
@@ -303,14 +306,17 @@ namespace specs {
             }.template operator()<Parameters>(), ...);
 
             SystemID id = systems.size();
-            systems.emplace_back(System {
-                .func = system_thunk<Func, Parameters...>,
-                .query_list_index = query_list_index,
-                .query_count = query_count,
-                .disabled = false,
-            });
 
-            schedule_system(id, query_list_index, query_count);
+            schedule_system(
+                System {
+                    .func = system_thunk<Func, Parameters...>,
+                    .query_list_index = query_list_index,
+                    .query_count = query_count,
+                    .disabled = false,
+                },
+                query_list_index,
+                query_count
+            );
 
             return id;
         }

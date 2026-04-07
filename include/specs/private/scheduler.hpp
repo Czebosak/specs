@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
+#include <queue>
 #include <atomic>
+#include <optional>
 
 #include <specs/private/system.hpp>
 #include <specs/private/schedule.hpp>
@@ -11,11 +12,22 @@ namespace specs {
     class Schedule;
     class WorkerPool;
 
+    class ScheduleLabelRegistry {
+    public:
+        template<typename Label>
+        static size_t id() {
+            static const size_t value = counter++;
+            return value;
+        }
+    private:
+        static size_t counter;
+    };
+
     class Scheduler {
     private:
-        std::vector<Schedule> schedules;
+        ankerl::unordered_dense::map<size_t, Schedule> schedules;
+        std::priority_queue<Schedule*> schedule_queue;
 
-        uint32_t schedule_index = 0;
         uint32_t frame_index = 0;
         std::atomic<uint32_t> system_index = 0;
 
@@ -24,13 +36,19 @@ namespace specs {
         friend Schedule;
         friend WorkerPool;
 
-        // Returns false if finished all
-        bool advance();
-
         inline bool is_executing() {
             return executing;
         }
 
+        // Returns false if finished all
+        bool advance();
+
         std::optional<std::tuple<System, std::span<AllocatedQuery>, std::span<size_t>>> get_next_system_and_data();
+    public:
+        Schedule* add_schedule(size_t id);
+
+        std::optional<Schedule*> get_schedule(size_t id);
+
+        void prepare();
     };
 }

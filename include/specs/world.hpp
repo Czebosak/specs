@@ -1,6 +1,5 @@
 #pragma once
-
-#include <memory>
+#include "specs/private/schedule.hpp"
 #include <thread>
 
 #include <specs/entity.hpp>
@@ -8,6 +7,7 @@
 #include <specs/commands.hpp>
 #include <specs/private/storage.hpp>
 #include <specs/private/scheduler.hpp>
+#include <specs/private/worker_pool.hpp>
 
 namespace specs {
     class Worker;
@@ -21,8 +21,8 @@ namespace specs {
     private:
         Storage storage;
         Schedule schedule;
-        std::vector<Worker> workers;
         Scheduler scheduler;
+        WorkerPool worker_pool;
 
         CommandQueue command_queue;
     public:
@@ -52,8 +52,32 @@ namespace specs {
             return schedule;
         }
 
-        void run() {
-            schedule.run(storage);
+        template <typename S, SystemFuncType System>
+        void add_system(S schedule, System&& system) {
+            size_t id = ScheduleLabelRegistry::id<S>();
+            auto opt = scheduler.get_schedule(id);
+            Schedule* schedule_ptr;
+            if (opt) {
+                schedule_ptr = opt.value();
+            } else {
+                schedule_ptr = scheduler.add_schedule(id);
+            }
+            schedule_ptr->register_system(std::forward(system));
         }
+
+        template <typename S, SystemFuncType... Systems>
+        void add_systems(S schedule, Systems&&... systems) {
+            size_t id = ScheduleLabelRegistry::id<S>();
+            auto opt = scheduler.get_schedule(id);
+            Schedule* schedule_ptr;
+            if (opt) {
+                schedule_ptr = opt.value();
+            } else {
+                schedule_ptr = scheduler.add_schedule(id);
+            }
+            (schedule_ptr->register_system(std::forward<Systems>(systems)), ...);
+        }
+
+        void run();
     };
 }

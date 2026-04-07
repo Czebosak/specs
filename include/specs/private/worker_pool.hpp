@@ -2,6 +2,7 @@
 
 #include <barrier>
 #include <functional>
+#include <print>
 #include <vector>
 #include <thread>
 #include <condition_variable>

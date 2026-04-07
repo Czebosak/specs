@@ -1,8 +1,15 @@
+#include <print>
 #include <specs/private/worker_pool.hpp>
 
 #include <specs/private/scheduler.hpp>
 
+#include <access_private.hpp>
+
+template struct access_private::access<&std::barrier<std::move_only_function<void()>>::_M_b>;
+        //assert(reinterpret_cast<size_t*>(&access_private::accessor<"_M_b">(barrier))[1] != 0);
+
 namespace specs {
+
     WorkerPool::WorkerPool(size_t threads, Scheduler& scheduler, Storage& storage)
     : scheduler(scheduler),
       storage(storage),
@@ -10,6 +17,8 @@ namespace specs {
         bool advance = this->scheduler.advance();
         if (advance) condition.notify_all();
     }) {
+        assert(threads > 0);
+        workers.reserve(threads);
         for (size_t i = 0; i < threads; i++) {
             workers.emplace_back([this] {
                 while (true) {

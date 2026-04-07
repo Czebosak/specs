@@ -5,28 +5,32 @@
 template<specs::QueriedComponentType... QueriedComponents>
 using Query = specs::Query<QueriedComponents...>;
 
+struct Main {};
+
 int main() {
     specs::World world;
 
-    std::println("sigma");
-
-    world.get_schedule().register_system([](Query<Velocity&> q) {
+    world.add_systems(Main{}, [](Query<Velocity&> q) {
         auto [v] = q.single();
         v.value[0] += 0.01f;
+        std::println("no");
     });
 
-    world.get_schedule().register_system([](Query<Position&> q) {
-        auto [p] = q.single();
-        p.value[0] -= 0.01f;
-    });
-
-    world.get_schedule().register_system([](Query<const Position&, const Velocity&> q) {
+    world.add_systems(Main{}, [](Query<const Position&, const Velocity&> q) {
         auto [p, v] = q.single();
         std::println("{}, {}", p.value[0], v.value[0]);
+        std::println("epic");
     });
 
-    while (true)
-        world.run();
+    world.add_systems(Main{}, [](Query<Position&> q) {
+        auto [p] = q.single();
+        p.value[0] -= 0.01f;
+        std::println("yes");
+    });
 
-    return -1;
+    world.run();
+
+    std::this_thread::sleep_for(std::chrono::hours(999999));
+
+    return 0;
 }

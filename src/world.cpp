@@ -2,6 +2,13 @@
 
 #include <specs/world.hpp>
 
-specs::World::World(unsigned int worker_count) : workers(worker_count) {}
+namespace specs {
+    World::World(unsigned int worker_count) : worker_pool(worker_count, scheduler, storage) {}
 
-specs::World::~World() = default;
+    World::~World() = default;
+
+    void World::run() {
+        scheduler.prepare();
+        worker_pool.start();
+    }
+}
