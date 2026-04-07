@@ -11,4 +11,9 @@ namespace specs {
         scheduler.prepare();
         worker_pool.start();
     }
+
+    void World::run_blocking() {
+        run();
+        worker_pool.wait();
+    }
 }

@@ -28,9 +28,10 @@ int main() {
         std::println("yes");
     });
 
-    world.run();
-
-    std::this_thread::sleep_for(std::chrono::hours(999999));
+    for (int i = 1; i <= 10; i++) {
+        std::println("{}", i);
+        world.run_blocking();
+    }
 
     return 0;
 }

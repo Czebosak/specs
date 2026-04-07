@@ -79,5 +79,7 @@ namespace specs {
         }
 
         void run();
+
+        void run_blocking();
     };
 }

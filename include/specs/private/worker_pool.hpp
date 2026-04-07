@@ -2,7 +2,6 @@
 
 #include <barrier>
 #include <functional>
-#include <print>
 #include <vector>
 #include <thread>
 #include <condition_variable>
@@ -18,6 +17,9 @@ namespace specs {
         std::mutex queue_mutex;
         std::condition_variable condition;
 
+        std::mutex finished_mutex;
+        std::condition_variable finished;
+
         Scheduler& scheduler;
         Storage& storage;
 
@@ -27,11 +29,15 @@ namespace specs {
     public:
         WorkerPool(size_t threads, Scheduler& scheduler, Storage& storage);
 
+        ~WorkerPool();
+
         WorkerPool(const WorkerPool&) = delete;
         WorkerPool& operator=(const WorkerPool&) = delete;
         WorkerPool(WorkerPool&&) = delete;
         WorkerPool& operator=(WorkerPool&&) = delete;
 
         void start();
+
+        void wait();
     };
 }

@@ -5,7 +5,7 @@ namespace specs {
 
     bool Scheduler::advance() {
         if (schedule_queue.empty()) {
-            executing = false;
+            is_executing = false;
             return false;
         }
 
@@ -15,15 +15,17 @@ namespace specs {
             schedule_queue.pop();
             frame_index = 0;
             if (schedule_queue.empty()) {
-                executing = false;
+                is_executing = false;
+                return false;
             }
         }
 
         if (!schedule_queue.empty()) {
             system_index = schedule_queue.top()->frames[frame_index - 1].end_index;
+            return true;
+        } else {
+            return false;
         }
-
-        return !schedule_queue.empty();
     }
 
     std::optional<std::tuple<System, std::span<AllocatedQuery>, std::span<size_t>>> Scheduler::get_next_system_and_data() {
@@ -44,7 +46,6 @@ namespace specs {
 
     Schedule* Scheduler::add_schedule(size_t id) {
         auto [it, b] = schedules.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple());
-        schedule_queue.emplace(&it->second);
         return &it->second;
     }
 
@@ -58,8 +59,9 @@ namespace specs {
     }
 
     void Scheduler::prepare() {
-        executing = true;
+        is_executing = true;
         frame_index = 0;
         system_index = 0;
+        schedule_queue.emplace(&schedules[0]);
     }
 }

@@ -28,17 +28,13 @@ namespace specs {
         ankerl::unordered_dense::map<size_t, Schedule> schedules;
         std::priority_queue<Schedule*> schedule_queue;
 
-        uint32_t frame_index = 0;
-        std::atomic<uint32_t> system_index = 0;
+        uint32_t frame_index;
+        std::atomic<uint32_t> system_index;
 
-        bool executing = false;
+        bool is_executing = false;
 
         friend Schedule;
         friend WorkerPool;
-
-        inline bool is_executing() {
-            return executing;
-        }
 
         // Returns false if finished all
         bool advance();

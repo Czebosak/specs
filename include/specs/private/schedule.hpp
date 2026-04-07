@@ -217,7 +217,6 @@ namespace specs {
 
             systems.emplace(systems.begin() + chosen_frame->end_index, std::forward<System&&>(system));
 
-            size_t x = chosen_frame->end_index;
             for (int i = (chosen_frame - frames.data()); i < frames.size(); i++) {
                 frames[i].end_index++;
             }

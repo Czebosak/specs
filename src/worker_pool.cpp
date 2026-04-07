@@ -9,13 +9,17 @@ template struct access_private::access<&std::barrier<std::move_only_function<voi
         //assert(reinterpret_cast<size_t*>(&access_private::accessor<"_M_b">(barrier))[1] != 0);
 
 namespace specs {
-
     WorkerPool::WorkerPool(size_t threads, Scheduler& scheduler, Storage& storage)
     : scheduler(scheduler),
       storage(storage),
       barrier(threads, [this] {
         bool advance = this->scheduler.advance();
-        if (advance) condition.notify_all();
+
+        if (advance) {
+            condition.notify_all();
+        } else {
+            finished.notify_all();
+        }
     }) {
         assert(threads > 0);
         workers.reserve(threads);
@@ -24,7 +28,7 @@ namespace specs {
                 while (true) {
                     {
                         std::unique_lock<std::mutex> lock(queue_mutex);
-                        condition.wait(lock, [this] { return stop || this->scheduler.is_executing(); });
+                        condition.wait(lock, [this] { return stop || this->scheduler.is_executing; });
                         if (stop) { return; }
                     }
 
@@ -43,7 +47,18 @@ namespace specs {
         }
     }
 
-    void WorkerPool::start() {
+    WorkerPool::~WorkerPool() {
+        stop = true;
         condition.notify_all();
+    }
+
+    void WorkerPool::start() {
+        stop = false;
+        condition.notify_all();
+    }
+
+    void WorkerPool::wait() {
+        std::unique_lock<std::mutex> finished_lock(finished_mutex);
+        finished.wait(finished_lock, [this] { return !this->scheduler.is_executing; });
     }
 }
