@@ -13,13 +13,14 @@ namespace specs {
     : scheduler(scheduler),
       storage(storage),
       barrier(threads, [this] {
-        bool advance = this->scheduler.advance();
+        bool advance = this->scheduler.advance(finished_mutex);
 
-        if (advance) {
-            condition.notify_all();
-        } else {
-            finished.notify_all();
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex);
+            next_frame_ready = advance;
         }
+
+        if (!advance) finished.notify_all();
     }) {
         assert(threads > 0);
         workers.reserve(threads);
@@ -28,7 +29,7 @@ namespace specs {
                 while (true) {
                     {
                         std::unique_lock<std::mutex> lock(queue_mutex);
-                        condition.wait(lock, [this] { return stop || this->scheduler.is_executing; });
+                        condition.wait(lock, [this] { return stop || next_frame_ready; });
                         if (stop) { return; }
                     }
 
@@ -59,6 +60,6 @@ namespace specs {
 
     void WorkerPool::wait() {
         std::unique_lock<std::mutex> finished_lock(finished_mutex);
-        finished.wait(finished_lock, [this] { return !this->scheduler.is_executing; });
+        finished.wait(finished_lock, [this] { return !scheduler.is_executing; });
     }
 }

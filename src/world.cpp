@@ -8,7 +8,11 @@ namespace specs {
     World::~World() = default;
 
     void World::run() {
-        scheduler.prepare();
+        {
+            std::lock_guard<std::mutex> lock(worker_pool.queue_mutex);
+            scheduler.prepare();
+            worker_pool.next_frame_ready = true;
+        }
         worker_pool.start();
     }
 

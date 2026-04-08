@@ -9,6 +9,7 @@
 namespace specs {
     class Scheduler;
     class Storage;
+    class World;
 
     class WorkerPool {
     private:
@@ -25,7 +26,9 @@ namespace specs {
 
         std::barrier<std::move_only_function<void()>> barrier;
 
+        bool next_frame_ready = false;
         bool stop = false;
+        friend World;
     public:
         WorkerPool(size_t threads, Scheduler& scheduler, Storage& storage);
 

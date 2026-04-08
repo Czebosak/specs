@@ -1,21 +1,21 @@
 #include <specs/private/scheduler.hpp>
 
+#include <mutex>
+
 namespace specs {
     size_t ScheduleLabelRegistry::counter = 0;
 
-    bool Scheduler::advance() {
-        if (schedule_queue.empty()) {
-            is_executing = false;
-            return false;
-        }
-
+    bool Scheduler::advance(std::mutex& finished_mutex) {
         frame_index++;
 
         if (frame_index >= schedule_queue.top()->frames.size()) {
             schedule_queue.pop();
             frame_index = 0;
             if (schedule_queue.empty()) {
-                is_executing = false;
+                {
+                    std::unique_lock<std::mutex> finished_lock(finished_mutex);
+                    is_executing = false;
+                }
                 return false;
             }
         }

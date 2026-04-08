@@ -37,7 +37,7 @@ namespace specs {
         friend WorkerPool;
 
         // Returns false if finished all
-        bool advance();
+        bool advance(std::mutex& finished_mutex);
 
         std::optional<std::tuple<System, std::span<AllocatedQuery>, std::span<size_t>>> get_next_system_and_data();
     public:
